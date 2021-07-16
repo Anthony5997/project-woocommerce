@@ -593,7 +593,7 @@ class ET_Dashboard {
 										break;
 
 										case 'simple_text':
-											$dashboard_options_temp[ $current_option_name ] = ! empty( $current_option_value )
+											$dashboard_options_temp[ $current_option_name ] = ! empty( $current_option_value ) || ( 'email_list' === $current_option_name && 'empty' !== $current_option_value ) // Can't use `empty()` for the `email_list` since the list_id can have a `0` value (e.g Salesforce WebToLead).
 												? sanitize_text_field( stripslashes( $current_option_value ) )
 												: '';
 

@@ -45,7 +45,9 @@ class ETCoreControlSelect extends PureComponent {
     let selectedValue = event.target.value;
 
     if (group) {
-      selectedValue = `${group}|${selectedValue}`;
+      if (get(this, 'props.parseGroupValue', true)){
+        selectedValue = `${group}|${selectedValue}`;
+      }
 
       if (this.props.group_prop) {
         this.props._onChange(this.props.group_prop, group);

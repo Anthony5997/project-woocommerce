@@ -12,11 +12,11 @@
 
 		init : function(ed, url) {
 			var t = this,
-				optins_locked = jQuery.parseJSON( bloom.locked_optins ),
-				optins_inline = jQuery.parseJSON( bloom.inline_optins ),
-				$bloom_tooltip = jQuery.parseJSON( bloom.bloom_tooltip ),
-				$inline_text = jQuery.parseJSON( bloom.inline_text ),
-				$locked_text = jQuery.parseJSON( bloom.locked_text ),
+				optins_locked = JSON.parse( bloom.locked_optins ),
+				optins_inline = JSON.parse( bloom.inline_optins ),
+				$bloom_tooltip = JSON.parse( bloom.bloom_tooltip ),
+				$inline_text = JSON.parse( bloom.inline_text ),
+				$locked_text = JSON.parse( bloom.locked_text ),
 				count = 0,
 				$menu_items_locked = [],
 				$menu_items_inline = [];

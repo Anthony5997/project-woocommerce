@@ -1,10 +1,10 @@
 (function($){
-	$(document).ready(function() {
-		$( '#monarch-override-locations' ).click(function(){
+	$( function () {
+		$( '#monarch-override-locations' ).on('click', function(){
 			$( '#monarch_settings_box' ).toggle();
 		});
 
-		$( '.et_monarch_stats_tab' ).click( function() {
+		$( '.et_monarch_stats_tab' ).on('click', function() {
 			var clicked_tab = $( this );
 			if ( !clicked_tab.hasClass( 'et_monarch_active_tab' ) ) {
 				$( '.et_monarch_tab_content' ).removeClass( 'et_monarch_hidden_tab_content' );
@@ -31,10 +31,10 @@
 				var this_el = $( this );
 
 				if ( this_el.hasClass( 'et_social_graph_alltime' ) ) {
-					this_el.find( 'li > div' ).css( { 'width' : 0 } );
+					this_el.find( 'li > div' ).css( { 'width' : '0px' } );
 					resize ( this_el, false );
 				} else {
-					this_el.find( 'li > div' ).css( { 'height' : 0 } );
+					this_el.find( 'li > div' ).css( { 'height' : '0px' } );
 					resize ( this_el, true );
 				}
 			});
@@ -48,7 +48,7 @@
 			var bar_array = '';
 
 			var bar_array = $( $current_ul ).find( 'li > div' ).map( function() {
-				return $( this ).attr( 'value' );
+				return $( this ).val();
 			}).get();
 			var bar_size = Math.max.apply( Math, bar_array );
 
@@ -58,7 +58,7 @@
 		}
 
 		function set_bar_size( $element, $bar_size, $is_height ) {
-			var value = $( $element ).attr( 'value' );
+			var value = $( $element ).val();
 			var li_size = ( value / $bar_size * 100 ) + '%';
 			if ( true == $is_height ) {
 				$( $element ).animate( { height: li_size }, 700 );
@@ -68,8 +68,8 @@
 		}
 
 		function resize_network() {
-			var value = $(this).attr("value");
-			var parent_value = $(this).parent().attr("value");
+			var value = $(this).val();
+			var parent_value = $(this).parent().val();
 			var new_height = value / parent_value * 100;
 			var percentage = new_height + "%";
 			var type = $(this).attr("type");
@@ -79,7 +79,7 @@
 
 		$( '.stats_tabs_content' ).on( 'mouseenter', '.et_social_hover_item', function(){
 			var $this_el = $( this );
-			var value = $this_el.attr( 'value' );
+			var value = $this_el.val();
 			var type = $this_el.attr( 'type' );
 			var action = $this_el.data( 'action' );
 			var display_message = 'like' == action ? monarchSettings.like_text : monarchSettings.share_text;

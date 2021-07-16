@@ -36,7 +36,7 @@
 
 	//Generates image upload window
 	window.et_dashboard_image_upload = function image_upload( $upload_button ) {
-		$upload_button.click( function( event ) {
+		$upload_button.on('click', function(event) {
 			var $this_el = $(this);
 
 			event.preventDefault();
@@ -339,7 +339,7 @@
 			}
 		});
 
-		$( document ).click( function() {
+		$(document).on('click', function() {
 			$( '.et_dashboard_live_search_res' ).removeClass( 'visible_search_res' );
 		});
 

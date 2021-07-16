@@ -1,15 +1,13 @@
 // External Dependencies
-import {
-  defaults,
-  isEmpty,
-  get,
-  includes,
-  forEach,
-  some,
-  compact,
-  uniq,
-} from 'lodash';
-import { isScriptExcluded, isScriptTopOnly } from './utils';
+// Do not use `import { a, b } from 'lodash'` syntax here to avoid
+// lot of unused code being included in the boot.js bundle.
+import defaults from 'lodash/defaults';
+import isEmpty from 'lodash/isEmpty';
+import get from 'lodash/get';
+import includes from 'lodash/includes';
+import forEach from 'lodash/forEach';
+import uniq from 'lodash/uniq';
+import { isScriptExcluded, isScriptTopOnly, isElementExcluded } from './utils';
 import $ from 'jquery';
 
 // Internal Dependencies
@@ -128,18 +126,25 @@ class ETCoreFrames {
   };
 
   _createElement = (base_element, target_document) => {
-    this._filterElementContent(base_element);
+    // Exclude current element from the iframe if it's on blocked list.
+    if (isElementExcluded(base_element)) {
+      return;
+    }
+
+    this._filterBaseElementContent(base_element);
 
     const element    = target_document.importNode(base_element, true);
-    const $resources = $(element).find('link, script, style');
+    const $resources = jQuery(element).find('link, script, style');
 
-    $(element).find('#et-fb-app-frame, #et-bfb-app-frame, #wpadminbar').remove();
+    jQuery(element).find('#et-fb-app-frame, #et-bfb-app-frame, #wpadminbar').remove();
+
+    this._filterElementContent(element);
 
     // Browsers will not load a resource node when it's imported from another document
     // because it was loaded already. Thus, we need to create new nodes for any resources
     // found nested inside this element.
     $resources.each((i, node) => {
-      const $node    = $(node);
+      const $node    = jQuery(node);
       const $parent  = $node.parent();
       const new_node = this._createResourceElement(node, target_document);
 
@@ -168,6 +173,8 @@ class ETCoreFrames {
     // We do the following after the iframe is in the DOM to avoid double load event that can occur
     // with Chrome and Safari in some cases
     $iframe.on('load', () => {
+      this._enableSalvattoreInVB();
+
       if (move_dom) {
         this._moveDOMToFrame($iframe);
       } else {
@@ -181,9 +188,9 @@ class ETCoreFrames {
   };
 
   _createResourceElement = (base_element, target_document) => {
-    const { id, nodeName: name, href, src, rel, type } = base_element;
+    const { id, nodeName: name, href, rel, type } = base_element;
 
-    const attrs = ['id', 'className', 'src', 'href', 'type', 'rel', 'innerHTML', 'media', 'screen', 'crossorigin', 'data-et-type'];
+    const attrs = ['id', 'className', 'href', 'type', 'rel', 'innerHTML', 'media', 'screen', 'crossorigin', 'data-et-type'];
 
     if ('et-fb-top-window-css' === id) {
       return;
@@ -193,11 +200,22 @@ class ETCoreFrames {
       return;
     }
 
-    if (isScriptExcluded(base_element) || isScriptTopOnly(base_element)) {
+    if (isScriptExcluded(base_element) || isScriptTopOnly(base_element) || isElementExcluded(base_element)) {
       return;
     }
 
     const element = target_document.createElement(name);
+
+    // Use a custom src for the app window if the element defines one.
+    const appSrc = base_element.getAttribute('data-et-vb-app-src');
+
+    if (appSrc) {
+      element.src = appSrc;
+    } else {
+      attrs.push('src');
+    }
+
+    const src = appSrc ? appSrc : base_element.src;
 
     if ((src || (href && type !== 'text/less')) && ('LINK' !== name || 'stylesheet' === rel)) {
       this.loading.push(this._resourceLoadAsPromise(element));
@@ -230,12 +248,40 @@ class ETCoreFrames {
     }
   };
 
-  _filterElementContent = (node) => {
+  /**
+   * Filter element before node is imported (base element).
+   *
+   * @since 4.9.3 Renamed from `_filterElementContent` into `_filterBaseElementContent` for better meaning.
+   *
+   * @param {HTMLElement} node
+   */
+  _filterBaseElementContent = (node) => {
     if (node.id === 'page-container') {
-      const $mobileMenu = $(node).find('#mobile_menu');
+      const $mobileMenu = jQuery(node).find('#mobile_menu');
       if ($mobileMenu.length > 0) {
         $mobileMenu.remove();
       }
+    }
+
+    // Filter all blocked child elements under the original (base) element.
+    const blocklistSelectors = get(window, 'ET_Builder.Preboot.elements.blocklist.selectors');
+    if (blocklistSelectors) {
+      $(node).find(blocklistSelectors).remove();
+    }
+  };
+
+  /**
+   * Filter element after node is imported (element).
+   *
+   * @since 4.9.3
+   *
+   * @param {HTMLElement} node
+   */
+  _filterElementContent = (node) => {
+    // Filter all blocked child elements under the imported element.
+    const blocklistSelectors = get(window, 'ET_Builder.Preboot.elements.iframeBlocklist.selectors');
+    if (blocklistSelectors) {
+      $(node).find(blocklistSelectors).remove();
     }
   };
 
@@ -256,17 +302,12 @@ class ETCoreFrames {
     forEach(base_head.childNodes, child => {
       const is_resource = includes(resource_nodes, child.nodeName);
 
-      let element;
+      let element = is_resource
+        ? this._createResourceElement(child, target_document)
+        : this._createElement(child, target_document);
 
-      if (is_resource) {
-        element = this._createResourceElement(child, target_document)
-
-        if (! element) {
-          return; // continue
-        }
-
-      } else {
-        element = this._createElement(child, target_document);
+      if (! element) {
+        return; // continue
       }
 
       this._appendChildSafely(target_head, element);
@@ -334,6 +375,15 @@ class ETCoreFrames {
     return new Promise((resolve) => {
       resource.addEventListener('load', resolve);
       resource.addEventListener('error', resolve);
+    });
+  }
+
+  _enableSalvattoreInVB() {
+    jQuery('[data-et-vb-columns]').each(function () {
+      const $this = jQuery(this);
+      $this
+          .attr('data-columns', $this.attr('data-et-vb-columns'))
+          .removeAttr('data-et-vb-columns');
     });
   }
 

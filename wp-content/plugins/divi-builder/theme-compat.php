@@ -93,6 +93,9 @@ class ET_Builder_Theme_Compat_Loader {
 			'Twenty Nineteen',
 			'Twenty Twenty',
 			'JupiterX',
+			'Portfolio Press',
+			'Astra',
+			'Iconic One',
 		) );
 	}
 
@@ -114,9 +117,14 @@ class ET_Builder_Theme_Compat_Loader {
 		// Check if current page is not singular but one of its main loop's post use builder
 		$not_singular_posts_has_builder = ! $is_using_pagebuilder && ! is_singular() && et_dbp_is_query_has_builder( $wp_query );
 
+		// Check if TB overrides header and footer layout.
+		$is_tb_override_header  = et_theme_builder_overrides_layout( ET_THEME_BUILDER_HEADER_LAYOUT_POST_TYPE );
+		$is_tb_override_footer  = et_theme_builder_overrides_layout( ET_THEME_BUILDER_FOOTER_LAYOUT_POST_TYPE );
+		$is_tb_overrides_layout = $is_tb_override_header || $is_tb_override_footer;
+
 		// Check whether: 1) current page uses builder or current page is not singular but  one of
 		// its post use builder 2) current theme has compatibility file
-		if ( ( $is_using_pagebuilder || $not_singular_posts_has_builder ) && in_array( $this->get_theme( 'Name' ), $this->theme_list() ) ) {
+		if ( ( $is_using_pagebuilder || $not_singular_posts_has_builder || $is_tb_overrides_layout ) && in_array( $this->get_theme( 'Name' ), $this->theme_list(), true ) ) {
 			return true;
 		}
 
@@ -125,12 +133,21 @@ class ET_Builder_Theme_Compat_Loader {
 
 	/**
 	 * Load theme compatibility file, if there's any
+	 *
+	 * @since ?? Handle theme compatibility file that starts with `class-` prefix.
+	 *
 	 * @return void
 	 */
 	function load_theme_compat() {
 		if ( $this->has_theme_compat() ) {
 			// Get theme-compat file at /theme-compat/ directory
 			$theme_compat_path = ET_BUILDER_PLUGIN_DIR . 'theme-compat/' . sanitize_title( $this->get_theme( 'Name' ) ) . '.php';
+
+			// Match theme compatibility file that starts with `class-` prefix.
+			if ( ! file_exists( $theme_compat_path ) ) {
+				$theme_compat_path = ET_BUILDER_PLUGIN_DIR . 'theme-compat/class-et-builder-theme-compat-' . sanitize_title( $this->get_theme( 'Name' ) ) . '.php';
+			}
+
 			require_once apply_filters( 'et_builder_theme_compat_loader_list_path', $theme_compat_path, $this->get_theme( 'Name' ) );
 		}
 	}

@@ -1,5 +1,5 @@
 (function($){
-	$(document).ready(function() {
+	$( function () {
 		var all_networks_opened = 0;
 
 		// fix the "on media" wrapper inside the Divi Gallery grid
@@ -28,7 +28,7 @@
 			return false;
 		});
 
-		$( '.et_social_follow' ).click( function() {
+		$( '.et_social_follow' ).on('click', function() {
 			var $this_el = $(this),
 				social_network = $this_el.data( 'social_name' );
 
@@ -430,7 +430,7 @@
 							scroll_trigger = 100 == scroll_pos ? $( document ).height() - 10 : $( document ).height() * scroll_pos / 100;
 					}
 
-					$( window ).scroll( function(){
+					$( window ).on('scroll', function(){
 						if ( ( false !== cookies_expire_bottom && ! checkCookieValue( 'etSocialCookie', 'true' ) ) || false == cookies_expire_bottom ) {
 							if( $( window ).scrollTop() + $( window ).height() > scroll_trigger ) {
 								current_popup_bottom.addClass( 'et_social_visible et_social_animated' );
@@ -472,7 +472,7 @@
 		}
 
 		// open close the mobile sideabr on header click
-		$( '.et_social_heading, .et_social_mobile_button' ).click( function(){
+		$( '.et_social_heading, .et_social_mobile_button' ).on('click', function(){
 			$this_mobile_div = $( '.et_social_mobile' );
 
 			$this_mobile_div.css( {'display' : 'block' } );
@@ -491,7 +491,7 @@
 		});
 
 		//if close button clicked - hide the mobile sidebar from screen
-		$( '.et_social_mobile .et_social_close' ).click( function(){
+		$( '.et_social_mobile .et_social_close' ).on('click', function(){
 			$mobile_div = $( '.et_social_mobile' );
 			$mobile_div.fadeToggle( 600 );
 			$( '.et_social_mobile_button' ).addClass( 'et_social_active_button' );
@@ -511,12 +511,19 @@
 					bottom_inline = $( '.et_social_inline_bottom' ),
 					divi_container = '<div class="et_pb_row"><div class="et_pb_column et_pb_column_4_4"></div></div>';
 
-				if ( top_inline.length ) {
-					$( '.et_pb_section' ).not( '.et_pb_fullwidth_section' ).first().prepend( divi_container ).find( '.et_pb_row' ).first().find( '.et_pb_column' ).append( top_inline );
+				if ($('.et-l--post').first().length > 0) {
+					var $sections = $('.et-l--post .et_pb_section').not('.et_pb_fullwidth_section');
+				} else {
+					// Backwards compatibility before .et-l was introduced.
+					var $sections = $('.et_pb_section:not(.et-l .et_pb_section)').not('.et_pb_fullwidth_section');
 				}
 
-				if ( bottom_inline.length ) {
-					$( '.et_pb_section' ).not( '.et_pb_fullwidth_section' ).last().append( divi_container ).find( '.et_pb_row' ).last().find( '.et_pb_column' ).append( bottom_inline );
+				if ($sections.length > 0 && top_inline.length) {
+					$sections.first().prepend(divi_container).find('.et_pb_row').first().find('.et_pb_column').append(top_inline);
+				}
+
+				if ($sections.length > 0 && bottom_inline.length) {
+					$sections.last().append(divi_container).find('.et_pb_row').last().find('.et_pb_column').append(bottom_inline);
 				}
 			}
 		}
@@ -525,7 +532,7 @@
 			setTimeout( function() { // make sure all css transitions are finished to calculate the heights correctly
 				var this_popup = $this_popup,
 					networks_div = this_popup.find( '.et_social_networks' ),
-					header_height = this_popup.find( '.et_social_header' ).outerHeight(),
+					header_height = this_popup.find( '.et_social_header' ).outerHeight() || 0,
 					total_count_height = this_popup.find( '.et_social_totalcount' ).height(),
 					extra_height = 0 < total_count_height ? 20 : 0;
 
@@ -537,7 +544,7 @@
 					popup_max_height = popup_max_height - 50;
 				}
 
-				this_popup.css( { 'max-height' : popup_max_height } );
+				this_popup.css( { 'max-height' : popup_max_height + 'px' } );
 
 				if( this_popup.hasClass( 'et_social_popup_content' ) ) {
 					var top_position = $( window ).height() / 2 - this_popup.innerHeight() / 2;
@@ -569,10 +576,10 @@
 					mobile_div.css({'display' : 'none'});
 				}
 
-				mobile_div.find( '.et_social_networks' ).css( { 'max-height' : inner_contatiner_height, 'height' : inner_contatiner_height } );
+				mobile_div.find( '.et_social_networks' ).css( { 'max-height' : inner_contatiner_height + 'px', 'height' : inner_contatiner_height + 'px' } );
 				if ( $( window ).height() < inner_contatiner_height ) {
 					var inner_height = $( window ).height() - mobile_div.find( '.et_social_heading' ).innerHeight() + 10;
-					mobile_div.find( '.et_social_networks' ).css({ 'height' : inner_height });
+					mobile_div.find( '.et_social_networks' ).css({ 'height' : inner_height + 'px' });
 				}
 			}, 400 );
 		}
@@ -599,13 +606,13 @@
 						this_wrapper_networks_height = this_wrapper.find( '.et_social_networks' ).innerHeight();
 
 					this_wrapper.addClass( this_image.attr( 'class' ) );
-					this_wrapper_media.css( { 'max-height' : this_image_height } );
-					this_wrapper_media.css( { 'height' : this_wrapper_networks_height + 50 } );
+					this_wrapper_media.css( { 'max-height' : this_image_height + 'px' } );
+					this_wrapper_media.css( { 'height' : ( this_wrapper_networks_height + 50 ) + 'px' } );
 					this_wrapper_media.width( this_image_width - 80 );
 
 					// adjust the icons position based on image alignement
 					if ( 0 !== image_left_offset ) {
-						this_wrapper_media.css( { 'left' : image_left_offset + 20 } );
+						this_wrapper_media.css( { 'left' : ( image_left_offset + 20 ) + 'px' } );
 					}
 				});
 
@@ -658,7 +665,7 @@
 				// use the dimensions from first slide and apply it to all the media icons in the slider
 				$this_gallery_media.width( icons_width - 80 );
 				$this_gallery_media.height( icons_height );
-				$this_gallery_media.css( { 'max-height' : icons_max_height } );
+				$this_gallery_media.css( { 'max-height' : icons_max_height + 'px' } );
 			});
 		}
 
@@ -706,7 +713,7 @@
 
 		set_sidebar_position();
 
-		$( window ).resize( function(){
+		$( window ).on( 'resize', () => {
 			if ( $( '.et_social_resize' ).length ) {
 				$( '.et_social_resize' ).each( function() {
 					define_popup_position( $( this ) );
@@ -722,12 +729,12 @@
 			set_media_wrapper_size();
 		});
 
-		$( '.et_social_hide_sidebar' ).click( function(){
+		$( '.et_social_hide_sidebar' ).on('click', function(){
 			$( '.et_social_hide_sidebar' ).toggleClass( 'et_social_hidden_sidebar' );
 			$( '.et_social_sidebar_networks' ).toggleClass( 'et_social_hidden_sidebar et_social_visible_sidebar' );
 		});
 
-		$( window ).load( function(){
+		$( window ).on('load', function(){
 			set_media_wrapper_size();
 
 			if ( $( '.et_social_pin_images' ).length && ( $( '.et_social_all_button' ).length || $( '.et_social_pinterest' ).length ) ) {

@@ -58,6 +58,10 @@ class ET_Builder_Theme_Compat_Twentysixteen {
 			array( $this, 'enqueue_non_singular_builder_inline_style' ),
 			20
 		);
+
+		// Fix missing theme page container when TB is enabled.
+		add_action( 'et_theme_builder_template_after_header', array( $this, 'theme_builder_after_header' ) );
+		add_action( 'et_theme_builder_template_before_footer', array( $this, 'theme_builder_before_footer' ) );
 	}
 
 	/**
@@ -103,6 +107,36 @@ class ET_Builder_Theme_Compat_Twentysixteen {
 EOT;
 
 		wp_add_inline_style( 'et-builder-modules-style', $inline_styles );
+	}
+
+	/**
+	 * Display theme opening container.
+	 *
+	 * Provide the opening container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_after_header() {
+		?>
+		<div id="page" class="site">
+			<div class="site-inner">
+				<div id="content" class="site-content">
+		<?php
+	}
+
+	/**
+	 * Display theme closing container.
+	 *
+	 * Provide the closing container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_before_footer() {
+		?>
+				</div><!-- #content -->
+			</div><!-- .site-inner -->
+		</div><!-- #page -->
+		<?php
 	}
 }
 ET_Builder_Theme_Compat_Twentysixteen::init();

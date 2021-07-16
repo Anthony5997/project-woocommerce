@@ -2,6 +2,24 @@
 
 	"use strict";
 
+	var top_window = window;
+	var is_iframe  = false;
+
+	if (window.top && window.top.__Cypress__) {
+		if (window.parent === window.top) {
+			top_window = window;
+			is_iframe  = false;
+
+		} else {
+			top_window = window.parent;
+			is_iframe  = true;
+		}
+
+	} else if (window.top) {
+		top_window = window.top;
+		is_iframe  = window.top !== window.self;
+	}
+
 	// Extend etCore since it is declared by localization.
 	$.extend( etCore, {
 
@@ -11,7 +29,7 @@
 		},
 
 		$selector: function(selector) {
-			return window.top ? window.top.jQuery(selector) : jQuery(selector);
+			return top_window.jQuery(selector);
 		},
 
 		applyMaxHeight: function() {
@@ -138,9 +156,9 @@
 					$content.stop().fadeOut( 200, function() {
 						$( this ).before( '<div class="et-core-modal-temp-content"><div>' + text + '</div></div>' );
 						$modal.find( tempContent ).height( contentHeight ).hide().fadeIn( 200 );
-						$modal.find( '.et-core-modal-remove-temp-content' ).click( function( e ) {
-							removeContent( 0 );
-						} );
+						$modal.find('.et-core-modal-remove-temp-content').on('click', function(e) {
+							removeContent(0);
+						});
 					} );
 
 					if ( $.isNumeric( remove ) ) {
@@ -183,11 +201,11 @@
 			etCore.applyMaxHeight();
 		});
 
-		$(document).ready(function() {
+		$(function() {
 			etCore.init();
 		});
 
-		$(window).resize(function() {
+		$(window).on('resize', function() {
 			etCore.applyMaxHeight();
 		});
 	});

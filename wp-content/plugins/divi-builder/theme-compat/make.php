@@ -49,6 +49,11 @@ class ET_Builder_Theme_Compat_Make {
 		// @todo once this issue is fixed in future version, run version_compare() to limit the scope of this fix
 		add_filter( 'make_will_be_builder_page', array( $this, 'adjust_builder_page_status' ) );
 		add_action( 'admin_enqueue_scripts',     array( $this, 'admin_enqueue_scripts' ), 10 );
+
+		// Fix missing theme page container when TB is enabled.
+		add_action( 'et_theme_builder_template_after_header', array( $this, 'theme_builder_after_header' ) );
+		add_action( 'et_theme_builder_template_before_footer', array( $this, 'theme_builder_before_footer' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'add_styling_fix' ), 11 );
 	}
 
 	/**
@@ -83,6 +88,46 @@ class ET_Builder_Theme_Compat_Make {
 		if ( isset( $current_screen->base ) && 'post' === $current_screen->base ) {
 			wp_enqueue_script( 'et_pb_theme_compat_make_editor', ET_BUILDER_PLUGIN_URI . '/theme-compat/js/make-editor.js', array( 'et_pb_admin_js', 'jquery' ), ET_BUILDER_VERSION, true );
 		}
+	}
+
+	/**
+	 * Display theme opening container.
+	 *
+	 * Provide the opening container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_after_header() {
+		?>
+		<div id="site-wrapper" class="site-wrapper">
+			<div id="site-content" class="site-content">
+				<div class="container">
+		<?php
+	}
+
+	/**
+	 * Display theme closing container.
+	 *
+	 * Provide the closing container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_before_footer() {
+		?>
+				</div><!-- .container -->
+			</div><!-- #site-content -->
+		</div><!-- #site-wrapper -->
+		<?php
+	}
+
+	/**
+	 * Add inline styling for fixing design quirks on Make theme.
+	 *
+	 * @since ??
+	 */
+	public function add_styling_fix() {
+		$style = '#et-boc #site-content { float: none; }';
+		wp_add_inline_style( 'et-builder-modules-style', $style );
 	}
 }
 ET_Builder_Theme_Compat_Make::init();

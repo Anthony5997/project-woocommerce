@@ -58,6 +58,10 @@ class ET_Builder_Theme_Compat_Enfold {
 		add_action( 'et_pb_shop_after_print_shop', array( $this, 'return_shop_onsale_position') );
 		add_action( 'et_pb_shop_before_print_shop', array( $this, 'register_shop_thumbnail' ) );
 		add_action( 'et_builder_wc_product_before_render_layout_registration', array( $this, 'remove_builder_wc_product_elements' ) );
+
+		// Fix missing theme page container when TB is enabled.
+		add_action( 'et_theme_builder_template_after_header', array( $this, 'theme_builder_after_header' ) );
+		add_action( 'et_theme_builder_template_before_footer', array( $this, 'theme_builder_before_footer' ) );
 	}
 
 	/**
@@ -138,6 +142,42 @@ class ET_Builder_Theme_Compat_Enfold {
 			'avia_woocommerce_display_output_upsells',
 			30
 		);
+	}
+
+	/**
+	 * Display theme opening container.
+	 *
+	 * Provide the opening container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_after_header() {
+		$scroll_offset = '';
+
+		if ( function_exists( 'avia_header_setting' ) ) {
+			$scroll_offset = avia_header_setting( 'header_scroll_offset' );
+		}
+		?>
+		<!-- Additional wrapper to fix sidebar issue because they locate id 'top' on body. -->
+		<div id="top">
+			<div id="wrap_all">
+				<div id="main" class="all_colors" data-scroll-offset="<?php echo esc_attr( $scroll_offset ); ?>"">
+		<?php
+	}
+
+	/**
+	 * Display theme closing container.
+	 *
+	 * Provide the closing container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_before_footer() {
+		?>
+				</div><!-- #main -->
+			</div><!-- #wrap_all -->
+		</div><!-- #top -->
+		<?php
 	}
 }
 ET_Builder_Theme_Compat_Enfold::init();

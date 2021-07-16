@@ -1,11 +1,9 @@
 // External Dependencies
 import $ from 'jquery';
-import {
-  forEach,
-  pickBy,
-  debounce,
-  isFunction,
-} from 'lodash';
+import debounce from 'lodash/debounce';
+import forEach from 'lodash/forEach';
+import isFunction from 'lodash/isFunction';
+import pickBy from 'lodash/pickBy';
 
 
 let _instance = null;

@@ -3,7 +3,7 @@
  * Plugin Name: Divi Builder
  * Plugin URI: http://elegantthemes.com
  * Description: The ultimate WordPress page builder. Already included and not needed when using the Divi or Extra theme.
- * Version: 4.1
+ * Version: 4.9.7
  * Author: Elegant Themes
  * Author URI: http://elegantthemes.com
  * License: GPLv2 or later
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'ET_BUILDER_PLUGIN_DIR', trailingslashit( plugin_dir_path( __FILE__ ) ) );
 define( 'ET_BUILDER_PLUGIN_URI', plugins_url('', __FILE__) );
-define( 'ET_BUILDER_PLUGIN_VERSION', '4.1' );
+define( 'ET_BUILDER_PLUGIN_VERSION', '4.9.7' );
 
 if ( ! class_exists( 'ET_Dashboard_v2' ) ) {
 	require_once( ET_BUILDER_PLUGIN_DIR . 'dashboard/dashboard.php' );
@@ -486,3 +486,28 @@ function et_add_divi_builder_support_center() {
 	$support_center->init();
 }
 add_action( 'init', 'et_add_divi_builder_support_center' );
+
+/**
+ * Deactivate Divi Builder plugin if necessary.
+ *
+ * The code is part of `submodule-core`. However, there is no way for the code to be fired
+ * on plugin activation hook because `submodule-core` is loaded on `plugins_loaded` hook.
+ * In this case, we need to load ET_Core_CompatibilityWarning class manually, so we can
+ * call maybe_deactivate_incompatible_plugin() method.
+ *
+ * @since ??
+ */
+function et_divi_builder_maybe_deactivate() {
+	$compatibility_warning_file = plugin_dir_path( __FILE__ ) . 'core/components/CompatibilityWarning.php';
+
+	// Ensure to load the class file only when it exists.
+	if ( ! file_exists( $compatibility_warning_file ) ) {
+		return;
+	}
+
+	require_once $compatibility_warning_file;
+
+	// Run checking just in case we need to deactivate the plugin.
+	ET_Core_CompatibilityWarning::maybe_deactivate_incompatible_plugin( plugin_basename( __FILE__ ) );
+}
+register_activation_hook( __FILE__, 'et_divi_builder_maybe_deactivate' );

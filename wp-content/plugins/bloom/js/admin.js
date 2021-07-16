@@ -1,9 +1,9 @@
 (function($){
-	$( document ).ready( function() {
+	$( function () {
 		var url = window.location.href,
 			tab_link = url.split( '#tab_' )[1],
 			premade_grid_cache = '',
-			et_bloom_all_optins_array = $.parseJSON( bloom_settings.all_optins_list ),
+			et_bloom_all_optins_array = JSON.parse( bloom_settings.all_optins_list ),
 			et_bloom_stats_data = {};
 
 		//Set the current tab to home by default
@@ -60,14 +60,18 @@
 
 		/** Handle clicks in the WP navigation menu:
 		 * 1) Open appropriate tab in dashboard
-		 * 2) Highlihgt an appropriate link in the WP menu
+		 * 2) Highlight an appropriate link in the WP menu
 		 */
 		$( 'body' ).on( 'click', '#toplevel_page_et_bloom_options li a', function() {
-			var this_link = $( this ),
-				open_link = this_link.attr( 'href' ).split( '#tab_' )[1];
-			if ( typeof open_link !== 'undefined' ) {
-				window.et_dashboard_set_current_tab( open_link, 'header' );
-				if ( 'et_dashboard_tab_content_header_stats' === open_link ) {
+			var $this_link = $( this );
+			var full_link = $this_link.attr( 'href' );
+			var	tab_link = full_link.split( '#tab_' )[1];
+
+			if ( full_link.indexOf( 'et_support_center' ) > -1 ) {
+				return true;
+			} else if ( typeof tab_link !== 'undefined' ) {
+				window.et_dashboard_set_current_tab( tab_link, 'header' );
+				if ( 'et_dashboard_tab_content_header_stats' === tab_link ) {
 					refresh_stats_tab( false );
 				}
 			} else {
@@ -76,7 +80,7 @@
 			}
 
 			$( '#toplevel_page_et_bloom_options ul li' ).removeClass( 'current' );
-			this_link.parent().addClass( 'current' );
+			$this_link.parent().addClass( 'current' );
 
 			return false;
 		});
@@ -818,7 +822,7 @@
 		function refresh_stats_tab( $force_upd ) {
 			if ( ! $( '.et_dashboard_stats_ready' ).length || true == $force_upd ) {
 				//make sure that graphs start loading from the 0 height to avoid weird jumping of bars
-				$( '.et_dashboard_lists_stats_graph_container ul li div' ).css( 'height', '0' );
+				$( '.et_dashboard_lists_stats_graph_container ul li div' ).css( 'height', '0px' );
 
 				$.ajax({
 					type: 'POST',
@@ -848,7 +852,7 @@
 					}
 				});
 			} else {
-				$( '.et_dashboard_lists_stats_graph_container ul li div' ).css( 'height', '0' );
+				$( '.et_dashboard_lists_stats_graph_container ul li div' ).css( 'height', '0px' );
 				$( 'ul.et_bloom_graph' ).each( function() {
 					resize ( $( this ) );
 				});
@@ -1627,14 +1631,14 @@
 					var header_height = this_popup.find( '.et_bloom_form_header img' ).innerHeight() + this_popup.find( '.et_bloom_form_header .et_bloom_form_text' ).innerHeight() + 30;
 				}
 
-				this_popup.css( { 'max-height' : popup_max_height } );
+				this_popup.css( { 'max-height' : popup_max_height + 'px' } );
 
 				if ( this_popup.hasClass( 'et_bloom_popup_container' ) ) {
 					var top_position = $( window ).height() / 2 - this_popup.innerHeight() / 2;
 					this_popup.css( { 'top' : top_position + 'px' } );
 				}
 
-				this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'max-height' : popup_max_height - 20 } );
+				this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'max-height' : ( popup_max_height - 20 ) + 'px' } );
 
 
 				if ( ( 768 > $( 'body' ).outerWidth() + 15 ) || this_popup.hasClass( 'et_bloom_form_bottom' ) ) {
@@ -1645,15 +1649,15 @@
 					real_popup_height = this_popup.find( '.et_bloom_form_container_wrapper' ).height() + 30 + form_add;
 
 					if ( this_popup.hasClass( 'et_bloom_form_right' ) || this_popup.hasClass( 'et_bloom_form_left' ) ) {
-						this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'height' : real_popup_height - 30 + dashed_offset } );
+						this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'height' : ( real_popup_height - 30 + dashed_offset ) + 'px' } );
 					}
 				} else {
 					real_popup_height = this_popup.find( '.et_bloom_form_container_wrapper' ).height();
 
 					if ( this_popup.hasClass( 'et_bloom_form_right' ) || this_popup.hasClass( 'et_bloom_form_left' ) ) {
-						this_popup.find( '.et_bloom_form_header' ).css( { 'height' : real_popup_height * breakout_offset - dashed_offset } );
-						this_popup.find( '.et_bloom_form_content' ).css( { 'min-height' : real_popup_height - dashed_offset } );
-						this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'height' : real_popup_height } );
+						this_popup.find( '.et_bloom_form_header' ).css( { 'height' : ( real_popup_height * breakout_offset - dashed_offset ) + 'px' } );
+						this_popup.find( '.et_bloom_form_content' ).css( { 'min-height' : ( real_popup_height - dashed_offset ) + 'px' } );
+						this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'height' : real_popup_height + 'px' } );
 					}
 				}
 
@@ -1669,19 +1673,18 @@
 			}, 100 );
 		}
 
-		$( window ).scroll( function(){
+		$( window ).on( 'scroll', function(){
 			if( $( this ).scrollTop() > 200 ) {
 				$( '.et_dashboard_preview' ).addClass( 'et_dashboard_fixed' );
 			} else {
 				$( '.et_dashboard_preview' ).removeClass( 'et_dashboard_fixed' );
 			}
 		});
-
-
-		$( window ).resize( function(){
+		
+		$( window ).on( 'resize', function () {
 			if ( $( '.et_bloom_preview_popup' ).length ) {
 				define_popup_position( $( '.et_bloom_preview_popup' ), false );
 			}
-		});
+		} );
 	});
 })(jQuery)

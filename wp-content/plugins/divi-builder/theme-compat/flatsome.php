@@ -48,6 +48,10 @@ class ET_Builder_Theme_Compat_Flatsome {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ), 10 );
 		add_action( 'et_pb_shop_before_print_shop', array( $this, 'register_shop_thumbnail' ) );
 		add_action( 'et_builder_wc_product_before_render_layout_registration', array( $this, 'remove_builder_wc_product_elements' ) );
+
+		// Fix missing theme page container when TB is enabled.
+		add_action( 'et_theme_builder_template_after_header', array( $this, 'theme_builder_after_header' ) );
+		add_action( 'et_theme_builder_template_before_footer', array( $this, 'theme_builder_before_footer' ) );
 	}
 
 	/**
@@ -89,6 +93,42 @@ class ET_Builder_Theme_Compat_Flatsome {
 	function remove_builder_wc_product_elements() {
 		// Remove custom breadcrumb added by Flatsome
 		remove_action( 'flatsome_breadcrumb' , 'woocommerce_breadcrumb', 20 );
+	}
+
+	/**
+	 * Display theme opening container.
+	 *
+	 * Provide the opening container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_after_header() {
+		$main_classes = '';
+
+		// Ensure `flatsome_main_classes` exists to avoid fatal error if it's removed.
+		if ( function_exists( 'flatsome_main_classes' ) ) {
+			ob_start();
+			flatsome_main_classes();
+			$main_classes = ob_get_clean();
+		}
+		?>
+		<div id="wrapper">
+			<main id="main" class="<?php echo esc_attr( $main_classes ); ?>">
+		<?php
+	}
+
+	/**
+	 * Display theme closing container.
+	 *
+	 * Provide the closing container tag only to ensure TB layout works smoothly.
+	 *
+	 * @since ??
+	 */
+	public function theme_builder_before_footer() {
+		?>
+			</main><!-- #main -->
+		</div><!-- #wrapper -->
+		<?php
 	}
 }
 ET_Builder_Theme_Compat_Flatsome::init();

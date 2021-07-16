@@ -2,7 +2,7 @@
 /*
  * Plugin Name: Monarch Plugin
  * Plugin URI: http://www.elegantthemes.com
- * Version: 1.4.12
+ * Version: 1.4.14
  * Description: Social Media Plugin
  * Author: Elegant Themes
  * Author URI: http://www.elegantthemes.com
@@ -17,7 +17,7 @@ define( 'ET_MONARCH_PLUGIN_DIR', trailingslashit( dirname(__FILE__) ) );
 define( 'ET_MONARCH_PLUGIN_URI', plugins_url('', __FILE__) );
 
 class ET_Monarch {
-	var $plugin_version = '1.4.12';
+	var $plugin_version = '1.4.14';
 	var $db_version = '1.3';
 	var $monarch_options;
 	var $_options_pagename = 'et_monarch_options';
@@ -50,7 +50,7 @@ class ET_Monarch {
 
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 
-		add_action( 'plugins_loaded', array( $this, 'add_localization' ) );
+		add_action( 'plugins_loaded', array( $this, 'add_localization' ), 11 );
 
 		// Generates the window with social networks
 		add_action( 'wp_ajax_generate_modal_ajax', array( $this, 'generate_select_network_modal_window' ) );
@@ -2294,7 +2294,20 @@ class ET_Monarch {
 
 				break;
 			case 'facebook':
-				$authorization_url = 'https://www.facebook.com/dialog/oauth?response_type=code&scope=public_profile,manage_pages&state=%1$s&client_id=%2$s&redirect_uri=%3$s';
+				$facebook_scopes = array( 'public_profile' );
+				if ( isset( $_POST['using_legacy_api'] ) ) {
+					$facebook_scopes[] = 'manage_pages';
+				} else {
+					$facebook_scopes[] = 'pages_read_engagement';
+				}
+
+				// Add additional scope for accessing instagram graph API.
+				// Ref https://developers.facebook.com/docs/instagram-api/reference/user/#permissions.
+				if ( isset( $_POST['using_instagram_api'] ) ) {
+					$facebook_scopes[] = 'instagram_basic';
+				}
+
+				$authorization_url = 'https://www.facebook.com/dialog/oauth?response_type=code&scope=' . implode( ',', $facebook_scopes ) . '&state=%1$s&client_id=%2$s&redirect_uri=%3$s';
 
 				break;
 		}
@@ -2490,6 +2503,21 @@ class ET_Monarch {
 					if ( 'facebook' === $network_name ) {
 						unset( $api_settings['ignore_monarch_fb_reauth_notice'] );
 						$api_settings['monarch_fb_last_auth_date'] = time();
+
+						// Get the Instagram business account id to be used to get the number of followers.
+						// Ref https://developers.facebook.com/docs/instagram-api/getting-started#5--get-the-page-s-instagram-business-account.
+						$use_facebook_instagram_api = et_()->array_get( $api_settings, 'general_main_facebook_instagram_api', 0 );
+						$instagram_business_page    = et_()->array_get( $api_settings, 'general_main_facebook_instagram_business_page', '' );
+						if ( ! empty( $use_facebook_instagram_api ) && ! empty( $instagram_business_page ) ) {
+							$instagram_request_url = sprintf( 'https://graph.facebook.com/v9.0/%s?fields=instagram_business_account&access_token=%s', $instagram_business_page, sanitize_text_field( $response->access_token ) );
+							$instagram_request     = wp_remote_get( esc_url_raw( $instagram_request_url ) );
+
+							if ( ! is_wp_error( $instagram_request ) && 200 === wp_remote_retrieve_response_code( $instagram_request ) ) {
+								$instagram_response = wp_remote_retrieve_body( $instagram_request );
+								$instagram_response = json_decode( $instagram_response );
+								$api_settings['follow_networks_instagram_business_account_id'] = sanitize_text_field( $instagram_response->instagram_business_account->id );
+							}
+						}
 					}
 
 					$this->update_option( $api_settings );
@@ -3903,7 +3931,7 @@ class ET_Monarch {
 
 					$display_counts = true == $monarch_options[ 'sharing_' . $type . '_counts' ] ? ' et_social_display_count' : '';
 
-					$min_counts = true == $monarch_options[ 'sharing_' . $type . '_counts' ] ? sprintf( 'data-min_count="%1$s"', esc_attr( $monarch_options[ 'sharing_' . $type . '_counts_num' ] ) ) : '';
+					$min_counts = true === (bool) $monarch_options[ 'sharing_' . $type . '_counts' ] ? sprintf( ' data-min_count="%1$s"', esc_attr( $monarch_options[ 'sharing_' . $type . '_counts_num' ] ) ) : '';
 
 					$network_name = ( isset( $monarch_options[ 'sharing_' . $type . '_network_names' ] ) && true == $monarch_options['sharing_' . $type . '_network_names'] ) ? sprintf( '<div class="et_social_networkname">%1$s</div>', esc_html( $icon_name ) ) : '';
 
@@ -4654,8 +4682,15 @@ class ET_Monarch {
 
 				break;
 			case 'instagram' :
-				if ( isset( $settings['access_tokens']['instagram'] ) ) {
-					$url = sprintf( 'https://api.instagram.com/v1/users/self/?access_token=%1$s', esc_attr( $settings['access_tokens']['instagram'] ) );
+				// To get the number of followers of Instagram we have to use the Instagram Graph API, which uses the Facebook token.
+				// Note: this only works for Instagram Professionals (Businesses and Creators) account linked to a Facebook Page.
+				// Ref https://developers.facebook.com/docs/instagram-api.
+				if ( isset( $settings['access_tokens']['facebook'], $settings['follow_networks_instagram_business_account_id'] ) ) {
+					$url = sprintf(
+						'https://graph.facebook.com/v3.1/%s?fields=followers_count&access_token=%s',
+						esc_attr( $settings['follow_networks_instagram_business_account_id'] ),
+						esc_attr( $settings['access_tokens']['facebook'] )
+					);
 				}
 
 				break;
@@ -4800,7 +4835,7 @@ class ET_Monarch {
 
 					break;
 				case 'instagram':
-					$result = $data->data->counts->followed_by;
+					$result = $data->followers_count;
 
 					break;
 				case 'linkedin':
@@ -5229,3 +5264,14 @@ function et_monarch_init_plugin() {
 	$GLOBALS['et_monarch'] = new ET_Monarch();
 }
 add_action( 'plugins_loaded', 'et_monarch_init_plugin' );
+
+/**
+ * Support Center
+ *
+ * @since ??
+ */
+function et_add_monarch_support_center() {
+	$support_center = new ET_Core_SupportCenter( 'monarch_plugin' );
+	$support_center->init();
+}
+add_action( 'init', 'et_add_monarch_support_center' );

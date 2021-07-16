@@ -2,7 +2,7 @@
 /*
  * Plugin Name: Bloom
  * Plugin URI: http://www.elegantthemes.com/plugins/bloom/
- * Version: 1.3.10
+ * Version: 1.3.12
  * Description: A simple, comprehensive and beautifully constructed email opt-in plugin built to help you quickly grow your mailing list.
  * Author: Elegant Themes
  * Author URI: http://www.elegantthemes.com
@@ -21,7 +21,7 @@ if ( ! class_exists( 'ET_Dashboard' ) ) {
 }
 
 class ET_Bloom extends ET_Dashboard {
-	var $plugin_version = '1.3.10';
+	var $plugin_version = '1.3.12';
 	var $db_version = '1.2';
 	var $_options_pagename = 'et_bloom_options';
 	var $menu_page;
@@ -58,7 +58,7 @@ class ET_Bloom extends ET_Dashboard {
 
 		add_action( 'admin_menu', array( $this, 'add_menu_link' ) );
 
-		add_action( 'plugins_loaded', array( $this, 'add_localization' ), 1 );
+		add_action( 'plugins_loaded', array( $this, 'add_localization' ), 11 );
 
 		add_filter( 'et_bloom_import_sub_array', array( $this, 'import_settings' ) );
 		add_filter( 'et_bloom_import_array', array( $this, 'import_filter' ) );
@@ -862,8 +862,6 @@ class ET_Bloom extends ET_Dashboard {
 			break;
 
 			case 'settings' :
-				$google_api_settings = get_option( 'et_google_api_settings' );
-				$google_fonts_disabled = isset( $google_api_settings['use_google_fonts'] ) && 'off' === $google_api_settings['use_google_fonts'];
 				printf( '
 					<div class="et_dashboard_row et_dashboard_updates_settings_row">
 						<h1>%1$s</h1>
@@ -883,8 +881,8 @@ class ET_Bloom extends ET_Dashboard {
 					</div>' ,
 					esc_html__( 'Bloom Settings', 'bloom' ),
 					esc_html__( 'Use Google Fonts', 'bloom' ),
-					!$google_fonts_disabled,
-					$google_fonts_disabled ? '' : ' checked="checked"',
+					et_core_use_google_fonts(),
+					! et_core_use_google_fonts() ? '' : ' checked="checked"',
 					esc_html__( 'Save', 'bloom' )
 				);
 			break;
@@ -1699,7 +1697,7 @@ class ET_Bloom extends ET_Dashboard {
 	 *               Empty array if stats data is empty.
 	 */
 	function get_conversions_by_period( $period = 28, $day_or_month = 'day', $list_id = '' ) {
-		// whitelist the possible values, since this is directly included unescaped into the sql string
+		// allowlist the possible values, since this is directly included unescaped into the sql string
 		$day_or_month = in_array( $day_or_month, array( 'day', 'month' ) ) ? $day_or_month : 'day';
 		$sql = "SELECT id";
 		$sql_args = array();
@@ -2022,8 +2020,8 @@ class ET_Bloom extends ET_Dashboard {
 		et_core_security_check( 'manage_options', 'accounts_tab' );
 
 		$edit_account = ! empty( $_POST['bloom_edit_account'] ) ? sanitize_text_field( $_POST['bloom_edit_account'] ) : '';
-		$account_name = ! empty( $_POST['bloom_account_name'] ) ? sanitize_text_field( $_POST['bloom_account_name'] ) : '';
-		$service = ! empty( $_POST['bloom_service'] ) ? sanitize_text_field( $_POST['bloom_service'] ) : '';
+		$account_name = ! empty( $_POST['bloom_account_name'] ) ? sanitize_text_field( stripslashes( $_POST['bloom_account_name'] ) ) : ''; // phpcs:ignore ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() function does sanitation.
+		$service      = ! empty( $_POST['bloom_service'] ) ? sanitize_text_field( $_POST['bloom_service'] ) : '';
 
 		echo '<div id="et_dashboard_edit_account_tab">';
 
@@ -2117,7 +2115,7 @@ class ET_Bloom extends ET_Dashboard {
 		et_core_security_check( 'manage_options', 'accounts_tab' );
 
 		$service = ! empty( $_POST['bloom_service'] ) ? sanitize_text_field( $_POST['bloom_service'] ) : '';
-		$name = ! empty( $_POST['bloom_upd_name'] ) ? sanitize_text_field( $_POST['bloom_upd_name'] ) : '';
+		$name    = ! empty( $_POST['bloom_upd_name'] ) ? sanitize_text_field( stripslashes( $_POST['bloom_upd_name'] ) ) : ''; // phpcs:ignore ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() function does sanitation.
 
 		echo $this->display_currrent_lists( $service, $name );
 
@@ -2167,7 +2165,6 @@ class ET_Bloom extends ET_Dashboard {
 	 * @return array
 	 */
 	public function get_subscriber_lists_for_account( $service, $name, $only_key = '' ) {
-		$name    = str_replace( array( '"', "'" ), '', stripslashes( $name ) );
 		$account = $this->_get_account( $service, $name );
 		$result  = array();
 		$lists   = isset( $account['lists'] ) ? $account['lists'] : array();
@@ -2181,11 +2178,6 @@ class ET_Bloom extends ET_Dashboard {
 			if ( isset( $list_info[ $only_key ] ) ) {
 				$result[] = $list_info[ $only_key ];
 			}
-		}
-
-		// Salesforce doesn't support lists on non-ssl websites.
-		if ( 'salesforce' === $service && ! is_ssl() ) {
-			return array();
 		}
 
 		return $result;
@@ -2954,10 +2946,10 @@ class ET_Bloom extends ET_Dashboard {
 	function remove_optin() {
 		et_core_security_check( 'manage_options', 'remove_option' );
 
-		$optin_id = ! empty( $_POST['remove_optin_id'] ) ? sanitize_text_field( $_POST['remove_optin_id'] ) : '';
+		$optin_id   = ! empty( $_POST['remove_optin_id'] ) ? sanitize_text_field( stripslashes( $_POST['remove_optin_id'] ) ) : ''; // phpcs:ignore ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() function does sanitation.
 		$is_account = ! empty( $_POST['is_account'] ) ? sanitize_text_field( $_POST['is_account'] ) : '';
-		$service = ! empty( $_POST['service'] ) ? sanitize_text_field( $_POST['service'] ) : '';
-		$parent_id = ! empty( $_POST['parent_id'] ) ? sanitize_text_field( $_POST['parent_id'] ) : '';
+		$service    = ! empty( $_POST['service'] ) ? sanitize_text_field( $_POST['service'] ) : '';
+		$parent_id  = ! empty( $_POST['parent_id'] ) ? sanitize_text_field( $_POST['parent_id'] ) : '';
 
 		$this->remove_optin_or_account( $optin_id, $is_account, $service, $parent_id );
 
@@ -3079,7 +3071,7 @@ class ET_Bloom extends ET_Dashboard {
 			return;
 		}
 
-		$name = str_replace( array( '"', "'" ), '', stripslashes( $name ) );
+		$name = stripslashes( $name );
 
 		$this->providers->update_account( $service, $name, $data_array );
 	}
@@ -3123,7 +3115,7 @@ class ET_Bloom extends ET_Dashboard {
 		et_core_security_check( 'manage_options', 'get_lists' );
 
 		$service      = empty( $_POST['bloom_upd_service'] ) ? '' : sanitize_text_field( $_POST['bloom_upd_service'] );
-		$account_name = empty( $_POST['bloom_upd_name'] ) ? '' : sanitize_text_field( $_POST['bloom_upd_name'] );
+		$account_name = empty( $_POST['bloom_upd_name'] ) ? '' : sanitize_text_field( stripslashes( $_POST['bloom_upd_name'] ) ); // phpcs:ignore ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() function does sanitation.
 
 		if ( '' === $service || '' === $account_name ) {
 			return;
@@ -3186,7 +3178,7 @@ class ET_Bloom extends ET_Dashboard {
 		et_core_security_check( 'manage_options', 'get_lists' );
 
 		$service      = empty( $_POST['bloom_service'] ) ? '' : sanitize_text_field( $_POST['bloom_service'] );
-		$account_name = empty( $_POST['bloom_name'] ) ? '' : sanitize_text_field( $_POST['bloom_name'] );
+		$account_name = empty( $_POST['bloom_name'] ) ? '' : sanitize_text_field( stripslashes( $_POST['bloom_name'] ) ); // phpcs:ignore ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() function does sanitation.
 
 		$provider = $this->_get_provider( $service, $account_name );
 
@@ -3344,7 +3336,17 @@ class ET_Bloom extends ET_Dashboard {
 			);
 		}
 
+		$show_if_conditions = array(
+			'function.protocol' => is_ssl() ? 'https' : 'http',
+		);
 		foreach ( $this->providers->account_fields( $service ) as $field_name => $field ) {
+			if ( isset( $field['show_if'] ) && is_array( $field['show_if'] ) ) {
+				foreach ( $field['show_if'] as $key => $value ) {
+					if ( isset( $show_if_conditions[ $key ] ) && $show_if_conditions[ $key ] !== $value ) {
+						continue 2;
+					}
+				}
+			}
 			$form_fields .= sprintf(
 				'<div class="et_dashboard_account_row">
 					<label for="%1$s">%2$s</label>
@@ -3375,9 +3377,9 @@ class ET_Bloom extends ET_Dashboard {
 	function generate_mailing_lists( $service = '', $account_name = '' ) {
 		et_core_security_check( 'manage_options', 'retrieve_lists' );
 
-		$account_name = ! empty( $_POST['bloom_account_name'] ) ? sanitize_text_field( $_POST['bloom_account_name'] ) : $account_name;
-		$service     = ! empty( $_POST['bloom_service'] ) ? sanitize_text_field( $_POST['bloom_service'] ) : $service;
-		$optin_id = ! empty( $_POST['bloom_optin_id'] ) ? sanitize_text_field( $_POST['bloom_optin_id'] ) : '';
+		$account_name = ! empty( $_POST['bloom_account_name'] ) ? sanitize_text_field( stripslashes( $_POST['bloom_account_name'] ) ) : sanitize_text_field( stripslashes( $account_name ) ); // phpcs:ignore ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() function does sanitation.
+		$service      = ! empty( $_POST['bloom_service'] ) ? sanitize_text_field( $_POST['bloom_service'] ) : $service;
+		$optin_id     = ! empty( $_POST['bloom_optin_id'] ) ? sanitize_text_field( $_POST['bloom_optin_id'] ) : '';
 
 		$options_array = ET_Bloom::get_bloom_options();
 		$current_email_list = isset( $options_array[$optin_id] ) ? $options_array[$optin_id]['email_list'] : 'empty';
@@ -3413,7 +3415,6 @@ class ET_Bloom extends ET_Dashboard {
 		die();
 	}
 
-
 /**-------------------------**/
 /** 		Front end		**/
 /**-------------------------**/
@@ -3421,7 +3422,11 @@ class ET_Bloom extends ET_Dashboard {
 		wp_register_script( 'et_bloom-uniform-js', ET_BLOOM_PLUGIN_URI . '/js/jquery.uniform.min.js', array( 'jquery' ), $this->plugin_version, true );
 		wp_register_script( 'et_bloom-custom-js', ET_BLOOM_PLUGIN_URI . '/js/custom.js', array( 'jquery' ), $this->plugin_version, true );
 		wp_register_script( 'et_bloom-idle-timer-js', ET_BLOOM_PLUGIN_URI . '/js/idle-timer.min.js', array( 'jquery' ), $this->plugin_version, true );
-		wp_register_style( 'et-gf-open-sans', esc_url_raw( "{$this->protocol}://fonts.googleapis.com/css?family=Open+Sans:400,700" ), array(), null );
+
+		if ( et_core_use_google_fonts() ) {
+			wp_register_style( 'et-gf-open-sans', esc_url_raw( "{$this->protocol}://fonts.googleapis.com/css?family=Open+Sans:400,700" ), array(), $this->plugin_version );
+		}
+
 		wp_register_style( 'et_bloom-css', ET_BLOOM_PLUGIN_URI . '/css/style.css', array(), $this->plugin_version );
 	}
 
@@ -5034,7 +5039,8 @@ class ET_Bloom extends ET_Dashboard {
 						esc_html( $form_class ) . ' .carrot_edge .et_bloom_form_content:before { border-top-color: ' . esc_html( $single_optin['header_bg_color'] ) . ' !important; } ' .
 						esc_html( $form_class ) . ' .carrot_edge.et_bloom_form_right .et_bloom_form_content:before, ' . esc_html( $form_class ) . ' .carrot_edge.et_bloom_form_left .et_bloom_form_content:before { border-top-color: transparent !important; border-left-color: ' . esc_html( $single_optin['header_bg_color'] ) . ' !important; }
 						@media only screen and ( max-width: 767px ) {' .
-							esc_html( $form_class ) . ' .carrot_edge.et_bloom_form_right .et_bloom_form_content:before, ' . esc_html( $form_class ) . ' .carrot_edge.et_bloom_form_left .et_bloom_form_content:before { border-top-color: ' . esc_html( $single_optin['header_bg_color'] ) . ' !important; border-left-color: transparent !important; }
+						esc_html( $form_class ) . ' .carrot_edge.et_bloom_form_right .et_bloom_form_content:before { border-top-color: ' . esc_html( $single_optin['header_bg_color'] ) . ' !important; border-left-color: transparent !important; }' .
+						esc_html( $form_class ) . ' .carrot_edge.et_bloom_form_left .et_bloom_form_content:after { border-bottom-color: ' . esc_html( $single_optin['header_bg_color'] ) . ' !important; border-left-color: transparent !important; }
 						}';
 					break;
 			}
@@ -5352,3 +5358,14 @@ function et_bloom_init_plugin() {
 add_action( 'plugins_loaded', 'et_bloom_init_plugin' );
 
 register_activation_hook( __FILE__, array( 'ET_Bloom', 'activate_plugin' ) );
+
+/**
+ * Support Center
+ *
+ * @since ??
+ */
+function et_add_bloom_support_center() {
+	$support_center = new ET_Core_SupportCenter( 'bloom_plugin' );
+	$support_center->init();
+}
+add_action( 'init', 'et_add_bloom_support_center' );

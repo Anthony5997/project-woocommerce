@@ -1,8 +1,8 @@
 (function($){
 
 	maybe_set_location_hash_after_oauth_redirect();
-
-	$( document ).ready( function() {
+	
+	$( function () {
 		var follow_delete_counter = 0,
 			share_delete_counter = 0,
 			url = window.location.href,
@@ -40,14 +40,14 @@
 				}
 		});
 
-		$( '.et_social_notice_link' ).click( function() {
+		$( '.et_social_notice_link' ).on('click', function() {
 			var $this = $( this ),
 				tab_open = $this.attr( 'href' ).split( '#tab_' )[1];
 
 			set_current_tab( tab_open, 'side' );
 		} );
 
-		$( '.et_social_api_trigger' ).click( function() {
+		$( '.et_social_api_trigger' ).on('click', function() {
 			reset_api_visibility();
 		} );
 
@@ -67,10 +67,6 @@
 					switch( network_name ) {
 						case 'vimeo' :
 							$( '.et_social_vimeo_api').addClass( 'et_social_visible_api' );
-							visible_options_count++;
-							break;
-						case 'instagram' :
-							$( '.et_social_instagram_api').addClass( 'et_social_visible_api' );
 							visible_options_count++;
 							break;
 						case 'linkedin' :
@@ -112,16 +108,16 @@
 
 		/* Create checkbox/toggle UI based off form data */
 
-		$("div.et_social_multi_selectable").click(function() {
+		$("div.et_social_multi_selectable").on('click', function() {
 			var checkbox = $(this).children("input");
 			checkbox.prop('checked') == false ? checkbox.prop('checked', true) : checkbox.prop('checked', false);
 			$(this).toggleClass( "et_social_selected et_social_just_selected" );
-			$(this).mouseleave(function() {
+			$(this).on('mouseleave', function() {
 			 	$(this).removeClass( "et_social_just_selected" );
 			});
 		});
 
-		$("div.et_social_single_selectable").click(function() {
+		$("div.et_social_single_selectable").on('click', function() {
 			var tabs = $(this).parents(".et_social_row").find("div.et_social_single_selectable");
 			var inputs = $(this).parents(".et_social_row").find("input");
 			tabs.removeClass( "et_social_selected" );
@@ -173,15 +169,15 @@
 			$this_el.attr( 'href', '#tab_' + $this_el.parent().find( 'ul > li > a' ).first().attr( 'id' ) );
 		});
 
-		$( 'div#et_social_navigation > ul > li > a' ).click( function() {
+		$( 'div#et_social_navigation > ul > li > a' ).on('click', function() {
 			set_current_tab ( $( this ).parent().find( 'ul > li > a' ).first().attr( 'id' ), 'side');
 		});
 
-		$( '#et_social_navigation ul li ul li > a' ).click( function() {
+		$( '#et_social_navigation ul li ul li > a' ).on('click', function() {
 			set_current_tab ( $( this ).attr( 'id' ), '' );
 		});
 
-		$( 'div#et_social_header > ul > li > a' ).click( function() {
+		$( 'div#et_social_header > ul > li > a' ).on('click', function() {
 			set_current_tab ( $( this ).attr( 'id' ), 'header' );
 		});
 
@@ -310,9 +306,9 @@
 			}
 		}
 
-		$( window ).resize( et_change_modal_window_height );
+		$( window ).on( 'resize', et_change_modal_window_height );
 
-		$( '.et_social_addnetwork' ).click( function(){
+		$( '.et_social_addnetwork' ).on('click', function(){
 			var area = $( this ).data( 'area' );
 
 				generate_modal_window( area, '', true );
@@ -320,7 +316,7 @@
 			return false;
 		});
 
-		$( '#et_social_shortcode_button' ).click( function(){
+		$( '#et_social_shortcode_button' ).on('click', function(){
 			var options_shortcode = $( '#et_monarch_options' ).serialize();
 			$spinner_shortcode = $( this ).parent().find( '.spinner' );
 			$.ajax({
@@ -471,7 +467,7 @@
 
 		});
 
-		$( '.et_social_save_changes button' ).click( function() {
+		$( '.et_social_save_changes button' ).on('click', function() {
 			var options_fromform = $( '#et_monarch_options' ).serialize();
 			$spinner = $( this ).parent().find( '.spinner' );
 			$.ajax({
@@ -552,7 +548,7 @@
 			}
 		}
 
-		$( '.et_social_conditional' ).click( function() {
+		$( '.et_social_conditional' ).on('click', function() {
 			check_conditional_options( $( this ) );
 		});
 
@@ -562,7 +558,7 @@
 			});
 		}
 
-		$( '.et_social_form span.more_info' ).click( function() {
+		$( '.et_social_form span.more_info' ).on('click', function() {
 			$( this ).find( '.et_social_more_text' ).fadeToggle( 400 );
 		});
 
@@ -570,6 +566,8 @@
 			var $this_el = $(this).parent(),
 				client_id = $this_el.parent().find( '.input .api_option_client_id' ).val(),
 				client_secret = $this_el.parent().find( '.input .api_option_client_secret' ).val(),
+				using_legacy_api = $this_el.parent().find( 'input[name=et_social\\[general_main_facebook_legacy_api\\]]:checked' ).val(),
+				using_instagram_api = $this_el.parent().find( 'input[name=et_social\\[general_main_facebook_instagram_api\\]]:checked' ).val(),
 				network_name = $this_el.closest( '.et_social_form' ).find( '> h2' ).text(),
 				options_fromform = $( '#et_monarch_options' ).serialize(),
 				api_key;
@@ -592,6 +590,8 @@
 						nonce : monarchSettings.monarch_nonce,
 						client_id : client_id,
 						client_secret : client_secret,
+						using_legacy_api: using_legacy_api,
+						using_instagram_api: using_instagram_api,
 						network_name : network_name,
 						api_key : api_key,
 						api_secret : api_secret,
@@ -616,7 +616,7 @@
 			return false;
 		} );
 
-		$( 'label[for="et_social[follow_networks_use_api]"]' ).click( function() {
+		$( 'label[for="et_social[follow_networks_use_api]"]' ).on('click', function() {
 			$( '#sortable_follow_networks_networks_sorting' ).toggleClass( 'et_social_api_enabled' );
 		});
 
@@ -667,7 +667,7 @@
 
 			return false;
 		});
-		
+
 		$( '.et_social_form' ).on( 'click', '.et_authorize_updates', function() {
 			var $form_container = $( this ).closest( 'ul' ),
 				username = $form_container.find( '.updates_option_username' ).val(),
@@ -695,6 +695,128 @@
 		});
 
 	});
+
+	/**
+	 * Validate the value from input field and autocorrect to positive float number with allowed suffix.
+	 *
+	 * @param {object} event
+	 *
+	 * @return {void}
+	 */
+	var inputValidation = function(event) {
+		var $inputField  = $(event.target);
+		var userlValue   = $inputField.val();
+		var convertedVal = parseFloat(userlValue.toString().replace(/\e/ig,'')); // remove `e` characters to avoid exponential numbers
+		var numericValue = isNaN(convertedVal) ? 0 : Math.abs(parseFloat(convertedVal));
+
+		// check if value ends with allowed characters, i.e. "k" or "mil"
+		var valueLength = userlValue.length;
+		var suffixK     = 'k' === userlValue.substr(valueLength - 1, 1).toLowerCase();
+		var suffixMil   = 'mil' === userlValue.substr(valueLength - 3, 3).toLowerCase();
+
+		// Append the suffix to numeric value if it one of the allowed suffixes
+		if (suffixK || suffixMil) {
+			var suffix    = suffixK ? 'k' : 'mil';
+			var fullValue = numericValue + suffix;
+
+			$inputField.val(fullValue);
+			return;
+		}
+
+		$inputField.val(numericValue);
+	};
+
+	// validate and autocorrect the value of manual followers count field
+	$('#et_social_wrapper').on('input', '.input_count', debounce(inputValidation, 1000));
+
+	/*
+		_.debounce(), restArguments() and delay() from Underscore.js
+
+		The MIT License (MIT)
+
+		Underscore.js 1.8.3
+		http://underscorejs.org
+		(c) 2009-2015 Jeremy Ashkenas,
+		DocumentCloud and Investigative Reporters & Editors
+
+		Permission is hereby granted, free of charge, to any person obtaining a copy
+		of this software and associated documentation files (the "Software"), to deal
+		in the Software without restriction, including without limitation the rights
+		to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+		copies of the Software, and to permit persons to whom the Software is
+		furnished to do so, subject to the following conditions:
+
+		The above copyright notice and this permission notice shall be included in all
+		copies or substantial portions of the Software.
+
+		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+		IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+		FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+		AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+		LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+		OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+		SOFTWARE.
+	*/
+	function debounce(func, wait, immediate) {
+		var timeout, result;
+
+		var later = function(context, args) {
+			timeout = null;
+			if (args) result = func.apply(context, args);
+		};
+
+		var restArguments = (function(func, startIndex) {
+			startIndex = startIndex == null ? func.length - 1 : +startIndex;
+
+			return function() {
+				var length = Math.max(arguments.length - startIndex, 0),
+					rest = Array(length),
+					index = 0;
+
+				for (; index < length; index++) {
+					rest[index] = arguments[index + startIndex];
+				}
+				switch (startIndex) {
+					case 0: return func.call(this, rest);
+					case 1: return func.call(this, arguments[0], rest);
+					case 2: return func.call(this, arguments[0], arguments[1], rest);
+				}
+				var args = Array(startIndex + 1);
+				for (index = 0; index < startIndex; index++) {
+					args[index] = arguments[index];
+				}
+				args[startIndex] = rest;
+
+				return func.apply(this, args);
+			};
+		});
+
+		var delay = restArguments(function(func, wait, args) {
+			return setTimeout(function() {
+				return func.apply(null, args);
+			}, wait);
+		});
+
+		var debounced = restArguments(function(args) {
+			if (timeout) clearTimeout(timeout);
+			if (immediate) {
+				var callNow = !timeout;
+				timeout = setTimeout(later, wait);
+				if (callNow) result = func.apply(this, args);
+			} else {
+				timeout = delay(later, wait, this, args);
+			}
+
+			return result;
+		});
+
+		debounced.cancel = function() {
+			clearTimeout(timeout);
+			timeout = null;
+		};
+
+		return debounced;
+	}
 
 	function get_url_parameter( param_name ) {
 		var page_url = window.location.search.substring(1);

@@ -1,5 +1,5 @@
 (function($){
-	$(document).ready(function() {
+	$( function () {
 		var $locked_containers = [];
 
 		$( '.et_bloom_make_form_visible' ).removeAttr( 'style' );
@@ -183,7 +183,7 @@
 						scroll_trigger = 100 == scroll_pos ? $( document ).height() - 50 : $( document ).height() * scroll_pos / 100;
 				}
 
-				$( window ).scroll( function(){
+				$( window ).on( 'scroll', function(){
 					if ( ( ( false !== cookies_expire_bottom && ! checkCookieValue( 'etBloomCookie_' + optin_id, 'true' ) ) || false == cookies_expire_bottom ) && ! $already_subscribed ) {
 						if( $( window ).scrollTop() + $( window ).height() > scroll_trigger ) {
 							if ( 0 == triggered ) {
@@ -203,7 +203,7 @@
 
 		$.fn.isInViewport = function() {
 			var elementTop     = $( this ).offset().top;
-			var elementBottom  = elementTop + $( this ).outerHeight();
+			var elementBottom  = elementTop + $( this ).outerHeight() || 0;
 			var viewportTop    = $( window ).scrollTop();
 			var viewportBottom = viewportTop + $( window ).height();
 
@@ -369,7 +369,20 @@
 					divi_container = '<div class="et_pb_row"><div class="et_pb_column et_pb_column_4_4"></div></div>';
 
 				if ( bottom_inline.length ) {
-					$( '.et_pb_section' ).not( '.et_pb_fullwidth_section' ).last().append( divi_container ).find( '.et_pb_row' ).last().find( '.et_pb_column' ).append( bottom_inline );
+					var $sections = $( '.et_pb_post_content .et_pb_section, .et_pb_fullwidth_post_content .et_pb_section' ).not( '.et_pb_fullwidth_section' );
+
+					if ($sections.length === 0) {
+						$sections = $( '.et-l--body .et_pb_section' ).not( '.et_pb_fullwidth_section' );
+					}
+
+					if ($sections.length === 0) {
+						$sections = $( '.et_pb_section' )
+							.not( '.et-l--header .et_pb_section' )
+							.not( '.et-l--footer .et_pb_section' )
+							.not( '.et_pb_fullwidth_section' );
+					}
+
+					$sections.last().append( divi_container ).find( '.et_pb_row' ).last().find( '.et_pb_column' ).append( bottom_inline );
 				}
 			}
 		}
@@ -383,50 +396,86 @@
 				breakout_offset = this_popup.hasClass( 'breakout_edge' ) ? 0.95 : 1,
 				dashed_offset = this_popup.hasClass( 'et_bloom_border_dashed' ) ? 4 : 0,
 				form_height = this_popup.find( 'form' ).innerHeight() + $message_space,
-				form_add = true == $just_loaded ? 5 : 0;
+				form_add = true == $just_loaded ? 5 : 0,
+				is_form_sidebar = false;
 
-			this_popup.css( { 'max-height' : popup_max_height } );
+			var previous_css,
+				popup_parent = this_popup.parent(),
+				is_visible = popup_parent.hasClass('et_bloom_visible');
 
-			if ( this_popup.hasClass( 'et_bloom_popup_container' ) ) {
-				var top_position = $( window ).height() / 2 - this_popup.innerHeight() / 2;
-				this_popup.css( { 'top' : top_position + 'px' } );
+			// Make parent visible for the browser to correctly calculate children(form wrapper) element height
+			// but the parent element is not visible to a web user
+			if (!is_visible) {
+				previous_css = popup_parent.attr('style');
+				popup_parent.css({ visibility: 'hidden', display: 'block' });
 			}
 
-			this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'max-height' : popup_max_height - 20 } );
+			// Remove all existing height, min-height and max-height to correctly calculate wrapper height.
+			this_popup.find('.et_bloom_form_header').css({ 'height': '' });
+			this_popup.find('.et_bloom_form_content').css({ 'min-height': '' });
+			this_popup.find('.et_bloom_form_container_wrapper').css({ 'height': '', 'max-height': '' });
 
+			var form_container_wrapper_height = this_popup.find('.et_bloom_form_container_wrapper').height();
+
+			// Restore the previous style on parent element after getting height of the children(form wrapper) element.
+			if (!is_visible) {
+				popup_parent.attr('style', previous_css ? previous_css : '');
+			}
+
+			this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'max-height' : ( popup_max_height - 20 ) + 'px' } );
 
 			if ( ( 768 > $( 'body' ).outerWidth() + 15 ) || this_popup.hasClass( 'et_bloom_form_bottom' ) ) {
 				if ( this_popup.hasClass( 'et_bloom_form_right' ) || this_popup.hasClass( 'et_bloom_form_left' ) ) {
 					this_popup.find( '.et_bloom_form_header' ).css( { 'height' : 'auto' } );
 				}
 
-				real_popup_height = this_popup.find( '.et_bloom_form_container_wrapper' ).height() + 30 + form_add;
+				real_popup_height = form_container_wrapper_height + 30 + form_add;
 
 				if ( this_popup.hasClass( 'et_bloom_form_right' ) || this_popup.hasClass( 'et_bloom_form_left' ) ) {
-					this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'height' : real_popup_height - 30 + dashed_offset } );
+					this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'height' : ( real_popup_height - 30 + dashed_offset ) + 'px' } );
+					this_popup.find( '.et_bloom_form_content' ).css( { 'min-height' : '' } );
 				}
 			} else {
-				real_popup_height = this_popup.find( '.et_bloom_form_container_wrapper' ).height() + $message_space;
+				real_popup_height = form_container_wrapper_height + 30 + $message_space;
 
-				/**
-				 * Sometimes real_popup_height return 0 because the page is no loaded fully. This
-				 * is added to set the Bloom container height as 100% to avoid 0 height. Note, the
-				 * height will be set as 100% only when the real_popup_height is 0.
-				 */
-				var container_height = real_popup_height;
-				if (parseInt(real_popup_height) === 0) {
-					container_height = '100%';
+				// A. Update popup height if current form is located on the sidebar.
+				// Sometimes real_popup_height return 0 because the current page is not
+				// loaded fully yet. So, we should not set height of the container as 0
+				// because it will break the layout.
+				if ((this_popup.hasClass('et_bloom_form_right') || this_popup.hasClass('et_bloom_form_left')) && 0 !== parseInt(real_popup_height)) {
+
+					is_form_sidebar = true;
+
+					// A.1. Check maybe the text content area is taller than the container.
+					var text_height = get_popup_text_height(this_popup);
+					if (text_height > real_popup_height) {
+						// A.1.a. In this case, use the text content area height instead.
+						real_popup_height = text_height;
+					}
+
+					// A.2. Update popup elements height with the latest real popup height.
+					update_popup_elements_height(this_popup, real_popup_height, breakout_offset, dashed_offset);
 				}
+			}
 
-				if ( this_popup.hasClass( 'et_bloom_form_right' ) || this_popup.hasClass( 'et_bloom_form_left' ) ) {
-					this_popup.find( '.et_bloom_form_header' ).css( { 'height' : real_popup_height * breakout_offset - dashed_offset } );
-					this_popup.find( '.et_bloom_form_content' ).css( { 'min-height' : real_popup_height - dashed_offset } );
-					this_popup.find( '.et_bloom_form_container_wrapper' ).css( { 'height' : container_height } );
+			if ( this_popup.hasClass( 'et_bloom_popup_container' ) ) {
+				var top_position = $( window ).height() / 2 - this_popup.innerHeight() / 2;
+				if (0 < top_position) {
+					this_popup.css({ 'top' : top_position + 'px' });
 				}
 			}
 
 			if ( real_popup_height > popup_max_height ) {
 				this_popup.find( '.et_bloom_form_container_wrapper' ).addClass( 'et_bloom_vertical_scroll' );
+
+				// B. If current form is located on sidebar, we need to check it again just
+				// in case the text height changed again after vertical scroll added.
+				if (is_form_sidebar) {
+					var new_text_height = get_popup_text_height(this_popup);
+					if (new_text_height > real_popup_height) {
+						update_popup_elements_height(this_popup, new_text_height, breakout_offset, dashed_offset);
+					}
+				}
 			} else {
 				this_popup.find( '.et_bloom_form_container_wrapper' ).removeClass( 'et_bloom_vertical_scroll' );
 			}
@@ -434,6 +483,33 @@
 			if ( $this_popup.hasClass( 'et_bloom_popup' ) ) {
 				$( 'body' ).addClass( 'et_bloom_popup_active' );
 			}
+		}
+
+		/**
+		 * Get text content are height of the popup.
+		 *
+		 * @param {jQuery} $popup Popup jQuery instance.
+		 *
+		 * @return {string}
+		 */
+		function get_popup_text_height($popup) {
+			var $header = $popup.find('.et_bloom_form_header');
+			var height  = $popup.find('.et_bloom_form_text').innerHeight() + ($header.innerHeight() - $header.height());
+			return height;
+		}
+
+		/**
+		 * Update popup elements height such as container, header, and content.
+		 *
+		 * @param {jQuery}  $popup   Popup jQuery instance.
+		 * @param {integer} height   New popup height.
+		 * @param {integer} breakout Breakout edge.
+		 * @param {integer} dashed   Border dashed width.
+		 */
+		function update_popup_elements_height($popup, height, breakout = 1, dashed = 0) {
+			$popup.find('.et_bloom_form_container_wrapper').css({ 'height': height });
+			$popup.find('.et_bloom_form_header').css({ 'height': height * breakout - dashed });
+			$popup.find('.et_bloom_form_content').css({ 'min-height': height - dashed });
 		}
 
 		$( 'body' ).on( 'click', '.et_bloom_submit_subscription:not(.et_bloom_submit_subscription_locked)', function() {
@@ -495,7 +571,7 @@
 				// radio field properties adjustment
 				if ('radio' === field_type) {
 					if (0 !== $this_wrapper.find('input[type="radio"]').length) {
-						var $firstRadio = $this_wrapper.find('input[type="radio"]:first');
+						var $firstRadio = $this_wrapper.find('input[type="radio"]').first();
 
 						required_mark = typeof $firstRadio.data('required_mark') !== 'undefined' ? $firstRadio.data('required_mark') : 'not_required';
 
@@ -642,7 +718,7 @@
 			update_stats_table( 'con', form_container );
 		} );
 
-		$( window ).resize( function(){
+		$( window ).on( 'resize', function(){
 			if ( $( '.et_bloom_resize' ).length ) {
 				$( '.et_bloom_resize' ).each( function() {
 					define_popup_position( $( this ), false, 0 );
